@@ -112,3 +112,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# ide file
+.idea/
+.vscode/
+
+# mac temp file
+.DS_Store
+
+# model file
+training_checkpoints/
