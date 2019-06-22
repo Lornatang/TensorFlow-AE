@@ -10,22 +10,19 @@
 
 import tensorflow as tf
 
-# This method returns a helper function to compute cross entropy loss
-cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
-
-def ae_loss(images, fake_output):
+def ae_loss(noise, fake_output):
   """  Automatic coding loss function
 
   Args:
-    images: real image.
+    noise: .
     fake_output: generate pic for use encoder model
 
   Returns:
     tf.reduce_mean.
 
   """
-  return tf.reduce_mean(tf.square(images - fake_output))
+  return tf.reduce_mean(tf.square(noise - fake_output))
 
 
 def decoder_optimizer():
@@ -35,7 +32,7 @@ def decoder_optimizer():
     tf.optimizers.Adam.
 
   """
-  return tf.keras.optimizers.Adam()
+  return tf.optimizers.Adam()
 
 
 def encoder_optimizer():
@@ -45,4 +42,4 @@ def encoder_optimizer():
     tf.optimizers.Adam.
 
   """
-  return tf.keras.optimizers.Adam()
+  return tf.optimizers.Adam()

@@ -37,6 +37,8 @@ save_path = './training_checkpoints'
 
 BUFFER_SIZE = 60000
 BATCH_SIZE = 128
+
+num_examples_to_generate = 16
 noise_dim = 64
 
 # create dir
@@ -44,22 +46,22 @@ if not os.path.exists(save_path):
   os.makedirs(save_path)
 
 # define random noise
-seed = tf.random.normal([16, 256])
+seed = tf.random.normal([num_examples_to_generate, noise_dim])
 
 # load dataset
 train_dataset = load_data(BUFFER_SIZE, BATCH_SIZE)
 
 # load network and optim paras
-encoder = make_encoder_model()
-encoder_optimizer = encoder_optimizer()
-
 decoder = make_decoder_model()
 decoder_optimizer = decoder_optimizer()
 
-checkpoint_dir, checkpoint, checkpoint_prefix = save_checkpoints(encoder,
-                                                                 decoder,
-                                                                 encoder_optimizer,
+encoder = make_encoder_model()
+encoder_optimizer = encoder_optimizer()
+
+checkpoint_dir, checkpoint, checkpoint_prefix = save_checkpoints(decoder,
+                                                                 encoder,
                                                                  decoder_optimizer,
+                                                                 encoder_optimizer,
                                                                  save_path)
 
 
@@ -74,22 +76,22 @@ def train_step(images):
   """
   noise = tf.random.normal([BATCH_SIZE, noise_dim])
 
-  with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
-    generated_images = encoder(noise, training=True)
+  with tf.GradientTape() as de_tape, tf.GradientTape() as en_tape:
+    generated_images = decoder(noise, training=True)
 
-    fake_output = decoder(generated_images, training=True)
+    fake_output = encoder(generated_images, training=True)
 
-    ae_of_loss = ae_loss(images, fake_output)
+    ae_of_loss = ae_loss(noise, fake_output)
 
-  gradients_of_generator = gen_tape.gradient(ae_of_loss,
-                                             decoder.trainable_variables)
-  gradients_of_discriminator = disc_tape.gradient(ae_of_loss,
-                                                  encoder.trainable_variables)
+  gradients_of_decoder = de_tape.gradient(ae_of_loss,
+                                          decoder.trainable_variables)
+  gradients_of_encoder = en_tape.gradient(ae_of_loss,
+                                          encoder.trainable_variables)
 
-  encoder_optimizer.apply_gradients(
-    zip(gradients_of_generator, decoder.trainable_variables))
   decoder_optimizer.apply_gradients(
-    zip(gradients_of_discriminator, encoder.trainable_variables))
+    zip(gradients_of_decoder, decoder.trainable_variables))
+  encoder_optimizer.apply_gradients(
+    zip(gradients_of_encoder, encoder.trainable_variables))
 
 
 def train(dataset, epochs):
@@ -116,7 +118,7 @@ def train(dataset, epochs):
     if (epoch + 1) % 15 == 0:
       checkpoint.save(file_prefix=checkpoint_prefix)
 
-    print(f'Time for epoch {epoch+1} is {time.time()-start:.3f} sec.')
+    print(f'Time for epoch {epoch + 1} is {time.time() - start:.3f} sec.')
 
   # Generate after the final epoch
   generate_and_save_images(decoder,
