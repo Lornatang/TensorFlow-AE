@@ -14,42 +14,21 @@ import tensorflow as tf
 cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
 
-def generator_loss(fake_output):
-  """ The generator's loss quantifies how well it was able to trick the discriminator.
-      Intuitively, if the generator is performing well, the discriminator will classify the fake images as real (or 1).
-      Here, we will compare the discriminators decisions on the generated images to an array of 1s.
+def ae_loss(images, fake_output):
+  """  Automatic coding loss function
 
   Args:
-    fake_output: generate pic.
+    images: real image.
+    fake_output: generate pic for use encoder model
 
   Returns:
-    loss
+    tf.reduce_mean.
 
   """
-  return cross_entropy(tf.ones_like(fake_output), fake_output)
+  return tf.reduce_mean(tf.square(images - fake_output))
 
 
-def discriminator_loss(real_output, fake_output):
-  """ This method quantifies how well the discriminator is able to distinguish real images from fakes.
-      It compares the discriminator's predictions on real images to an array of 1s, and the discriminator's predictions
-      on fake (generated) images to an array of 0s.
-
-  Args:
-    real_output: origin pic.
-    fake_output: generate pic.
-
-  Returns:
-    real loss + fake loss
-
-  """
-  real_loss = cross_entropy(tf.ones_like(real_output), real_output)
-  fake_loss = cross_entropy(tf.zeros_like(fake_output), fake_output)
-  total_loss = real_loss + fake_loss
-
-  return total_loss
-
-
-def generator_optimizer():
+def decoder_optimizer():
   """ The training generator optimizes the network.
 
   Returns:
@@ -59,7 +38,7 @@ def generator_optimizer():
   return tf.keras.optimizers.Adam()
 
 
-def discriminator_optimizer():
+def encoder_optimizer():
   """ The training discriminator optimizes the network.
 
   Returns:

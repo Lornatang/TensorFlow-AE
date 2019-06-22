@@ -21,15 +21,15 @@ def load_data(buffer_size, batch_size):
   """
 
   Returns:
-    tf.keras.datasets.cifar10
+    tf.keras.datasets.fashion_mnist
 
   """
 
   # load dataset
-  (train_images, _), (_, _) = tf.keras.datasets.cifar10.load_data()
+  (train_images, _), (_, _) = tf.keras.datasets.fashion_mnist.load_data()
 
   # split dataset
-  train_images = train_images.reshape(buffer_size, 32, 32, 3).astype(
+  train_images = train_images.reshape(buffer_size, 28, 28, 1).astype(
     "float32"
   ) / 127.5
 

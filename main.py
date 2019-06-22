@@ -15,10 +15,9 @@
 """
 
 from data.datasets import load_data
-from model.decoder import make_generator_model
-from model.encoder import make_discriminator_model
-from util.loss_and_optim import generator_loss, generator_optimizer
-from util.loss_and_optim import discriminator_loss, discriminator_optimizer
+from model.decoder import make_decoder_model
+from model.encoder import make_encoder_model
+from util.loss_and_optim import ae_loss, encoder_optimizer, decoder_optimizer
 from util.save_checkpoints import save_checkpoints
 from util.generate_and_save_images import generate_and_save_images
 
@@ -36,27 +35,31 @@ print(args)
 # define model save path
 save_path = './training_checkpoints'
 
+BUFFER_SIZE = 60000
+BATCH_SIZE = 128
+noise_dim = 64
+
 # create dir
 if not os.path.exists(save_path):
   os.makedirs(save_path)
 
 # define random noise
-noise = tf.random.normal([16, 256])
+seed = tf.random.normal([16, 256])
 
 # load dataset
-train_dataset = load_data(60000, 128)
+train_dataset = load_data(BUFFER_SIZE, BATCH_SIZE)
 
 # load network and optim paras
-generator = make_generator_model()
-generator_optimizer = generator_optimizer()
+encoder = make_encoder_model()
+encoder_optimizer = encoder_optimizer()
 
-discriminator = make_discriminator_model()
-discriminator_optimizer = discriminator_optimizer()
+decoder = make_decoder_model()
+decoder_optimizer = decoder_optimizer()
 
-checkpoint_dir, checkpoint, checkpoint_prefix = save_checkpoints(generator,
-                                                                 discriminator,
-                                                                 generator_optimizer,
-                                                                 discriminator_optimizer,
+checkpoint_dir, checkpoint, checkpoint_prefix = save_checkpoints(encoder,
+                                                                 decoder,
+                                                                 encoder_optimizer,
+                                                                 decoder_optimizer,
                                                                  save_path)
 
 
@@ -69,24 +72,24 @@ def train_step(images):
     images: input images.
 
   """
+  noise = tf.random.normal([BATCH_SIZE, noise_dim])
+
   with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
-    generated_images = generator(noise, training=True)
+    generated_images = encoder(noise, training=True)
 
-    real_output = discriminator(images, training=True)
-    fake_output = discriminator(generated_images, training=True)
+    fake_output = decoder(generated_images, training=True)
 
-    gen_loss = generator_loss(fake_output)
-    disc_loss = discriminator_loss(real_output, fake_output)
+    ae_of_loss = ae_loss(images, fake_output)
 
-  gradients_of_generator = gen_tape.gradient(gen_loss,
-                                             generator.trainable_variables)
-  gradients_of_discriminator = disc_tape.gradient(disc_loss,
-                                                  discriminator.trainable_variables)
+  gradients_of_generator = gen_tape.gradient(ae_of_loss,
+                                             decoder.trainable_variables)
+  gradients_of_discriminator = disc_tape.gradient(ae_of_loss,
+                                                  encoder.trainable_variables)
 
-  generator_optimizer.apply_gradients(
-    zip(gradients_of_generator, generator.trainable_variables))
-  discriminator_optimizer.apply_gradients(
-    zip(gradients_of_discriminator, discriminator.trainable_variables))
+  encoder_optimizer.apply_gradients(
+    zip(gradients_of_generator, decoder.trainable_variables))
+  decoder_optimizer.apply_gradients(
+    zip(gradients_of_discriminator, encoder.trainable_variables))
 
 
 def train(dataset, epochs):
@@ -104,9 +107,9 @@ def train(dataset, epochs):
       train_step(image_batch)
 
     # Produce images for the GIF as we go
-    generate_and_save_images(generator,
+    generate_and_save_images(decoder,
                              epoch + 1,
-                             noise,
+                             seed,
                              save_path)
 
     # Save the model every 15 epochs
@@ -116,10 +119,10 @@ def train(dataset, epochs):
     print(f'Time for epoch {epoch+1} is {time.time()-start:.3f} sec.')
 
   # Generate after the final epoch
-  generate_and_save_images(generator,
+  generate_and_save_images(decoder,
                            epochs,
-                           noise,
+                           seed,
                            save_path)
 
 
-train(mnist_train_dataset, args.epochs)
+train(train_dataset, args.epochs)
