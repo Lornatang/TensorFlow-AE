@@ -74,14 +74,11 @@ def train_step(images):
     images: input images.
 
   """
-  noise = tf.random.normal([BATCH_SIZE, noise_dim])
-
   with tf.GradientTape() as de_tape, tf.GradientTape() as en_tape:
-    generated_images = decoder(noise, training=True)
+    z = encoder(images)
+    _x = decoder(z)
 
-    fake_output = encoder(generated_images, training=True)
-
-    ae_of_loss = ae_loss(noise, fake_output)
+    ae_of_loss = ae_loss(images, _x)
 
   gradients_of_decoder = de_tape.gradient(ae_of_loss,
                                           decoder.trainable_variables)
