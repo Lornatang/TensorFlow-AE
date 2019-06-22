@@ -29,9 +29,7 @@ def load_data(buffer_size, batch_size):
   (train_images, _), (_, _) = tf.keras.datasets.fashion_mnist.load_data()
 
   # split dataset
-  train_images = train_images.reshape(buffer_size, 28, 28, 1).astype(
-    "float32"
-  )
+  train_images = train_images.reshape(buffer_size, 28, 28, 1).astype("float32")
   train_images = (train_images - 127.5) / 127.5
 
   # batch datasets
