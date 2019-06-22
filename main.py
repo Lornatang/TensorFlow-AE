@@ -124,4 +124,5 @@ def train(dataset, epochs):
                            save_path)
 
 
-train(train_dataset, args.epochs)
+if __name__ == '__main__':
+  train(train_dataset, args.epochs)
